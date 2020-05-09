@@ -1,0 +1,33 @@
+
+
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<head>
+    <title>Submetering ECEB</title>
+</head>
+
+<body style="background-color:grey;">
+    <center>
+        <h1>Submetering ECEB Energy Reading</h1>
+        <p>Click on the button to see the energy using! 乁( ͡° ͜ʖ ͡°)ㄏ.</p>
+        <button onclick="realPower_and_apparentPower()">View realPower and apparentPower</button>
+        <button onclick="v_and_i()">View Vrms and Irms</button>
+        <button onclick="powerFactor()">View powerFactor</button>
+        <br>
+        <img src="floorplan.JPG" alt="Floor Plan"  width="512" >
+    </center>
+
+</body>
+<script>
+    function realPower_and_apparentPower() {
+        location.replace("r&a.html")
+    }
+    function v_and_i() {
+        location.replace("v&i.html")
+    }
+    function powerFactor() {
+        location.replace("PF.html")
+    }
+</script>
+</html>

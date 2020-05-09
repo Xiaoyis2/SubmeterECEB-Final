@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Display</title>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+    <meta charset='utf-8' />
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.657.0.min.js"></script>
+    <style>
+    body {
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+    #chart {
+      max-width: 600px;
+      max-height: 400px;
+    }
+
+    div.fixed {
+        /* color: #7FFFD4; */
+      color: lightgrey;
+      position: fixed;
+      width: 75%;
+      bottom: 10px;
+      border: 3px solid #8AC007;
+    }
+    </style>
+  </head>
+  <body style="background-color:gray;">
+    <center>
+        <h1>Submetering ECEB Energy Reading</h1>
+        <!-- <p>Still under construction 乁(ᴗ ͜ʖ ᴗ)ㄏ.</p> -->
+        <button onclick="back()">Back to Homepage</button>
+    </center>
+    <div id="chart" style="text-align:center; margin:auto;"></div>
+    <script src="script.js"></script>
+    <script>
+    var lineArr = [];
+    var MAX_LENGTH = 10;
+    var duration = 500;
+    var chart = realTimeLineChart();
+    function randomNumberBounds(min, max) {
+      return Math.floor(Math.random() * max) + min;
+    }
+    var LatestTime;
+    AWS.config.update({  accessKeyId: '',
+                     secretAccessKey: '',
+                              region: ''});
+    const docClient = new AWS.DynamoDB.DocumentClient()
+
+
+    async function seedData() {
+      var now = new Date();
+      var params = {
+          TableName : '',
+          IndexName : 'room-timestamp-index',
+          KeyConditionExpression: "room = :room",
+          ExpressionAttributeValues: {
+              ":room": "eceb2020"
+          },
+          ScanIndexForward: "false",  //read from latest, don't forget to reverse
+          Limit: MAX_LENGTH
+      };
+      var result = await docClient.query(params).promise();
+      var item = result.Items.reverse();
+      for (var i = 0; i < MAX_LENGTH; ++i) {
+        var data = item[i];
+        // LatestTime = 1588110527407;
+        LatestTime = data.timestamp;
+        lineArr.push({
+          // time: new Date(now.getTime() - ((MAX_LENGTH - i) * duration)),
+          time: new Date(parseInt(data.timestamp)),
+          x: data.realPower,
+          y: data.apparentPower
+          // x: randomNumberBounds(0, 10),
+          // y: randomNumberBounds(0, 10)
+        });
+      }
+      // console.log(lineArr);
+    }
+
+
+    async function updateData() {
+      // console.log(lineArr);
+      var now = new Date();
+      var params = {
+          TableName : '',
+          IndexName : 'room-timestamp-index',
+          KeyConditionExpression: "room = :room",
+          ExpressionAttributeValues: {
+              ":room": "eceb2020"
+          },
+          ScanIndexForward: "false",  //read from latest, don't forget to reverse
+          Limit: 1
+      };
+      var result = await docClient.query(params).promise();
+      if (result.Items[0].timestamp > LatestTime) {
+          LatestTime = result.Items[0].timestamp;
+          var lineData = {
+              time: new Date(parseInt(result.Items[0].timestamp)),
+              x: result.Items[0].realPower,
+              y: result.Items[0].apparentPower
+          };
+          lineArr.push(lineData);
+      } else {
+
+      }
+
+      if (lineArr.length > 10) {
+        lineArr.shift();
+      }
+      d3.select("#chart").datum(lineArr).call(chart);
+    }
+
+
+    function resize() {
+      if (d3.select("#chart svg").empty()) {
+        return;
+      }
+      chart.width(+d3.select("#chart").style("width").replace(/(px)/g, ""));
+      d3.select("#chart").call(chart);
+    }
+
+    (async function() {
+      await seedData();
+      await updateData();
+      window.setInterval(await updateData, 6000);
+      d3.select("#chart").datum(lineArr).call(chart);
+      d3.select(window).on('resize', resize);
+    })();
+
+    document.addEventListener("DOMContentLoaded", function() {
+        // console.log("loaded");
+    });
+
+
+    function back() {
+        location.replace("index.html")
+    }
+    </script>
+    <div class="fixed"><strong>This diagram shows real power and apparent power</strong><br>
+        Curve X is the Real Power in Watt and Curve Y is the Apparent Power in Volt-Amps!<br>
+        X axis is the time that the data is collected.
+    </div>
+</body>
+</html>
